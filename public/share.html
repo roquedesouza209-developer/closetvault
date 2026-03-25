@@ -8,9 +8,59 @@
       name="description"
       content="Open a secure ClosetVault shared file link with preview, download, and optional edit access."
     />
+    <script>
+      (() => {
+        try {
+          const validThemes = [
+            "dark",
+            "light",
+            "system",
+            "summer",
+            "autumn",
+            "winter",
+            "spring",
+            "ocean",
+            "sunset",
+          ];
+          const savedTheme = localStorage.getItem("closetvault.theme");
+          const theme = validThemes.includes(savedTheme) ? savedTheme : "dark";
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.dataset.colorMode =
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark";
+
+          const entries =
+            typeof performance.getEntriesByType === "function"
+              ? performance.getEntriesByType("navigation")
+              : [];
+          const navigationType = entries[0]?.type ?? performance.navigation?.type;
+
+          if (navigationType === "reload" || navigationType === 1) {
+            document.documentElement.classList.add("show-reload-splash");
+            window.__closetvaultReloadSplashStartedAt = performance.now();
+          }
+        } catch {}
+      })();
+    </script>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body class="share-page">
+    <div id="reload-splash" class="reload-splash" aria-hidden="true">
+      <div class="reload-splash-card">
+        <span class="reload-splash-mark">CV</span>
+        <div class="reload-splash-copy">
+          <p class="kicker">Reloading ClosetVault</p>
+          <h2>Reopening your secure explorer...</h2>
+          <p>Your Closet. Secure Vault.</p>
+        </div>
+        <div class="reload-splash-progress">
+          <span></span>
+        </div>
+      </div>
+    </div>
+
     <div class="ambient ambient-left"></div>
     <div class="ambient ambient-right"></div>
 
@@ -138,6 +188,7 @@
       </section>
     </main>
 
+    <script src="/theme.js" defer></script>
     <script src="/share.js" defer></script>
   </body>
 </html>

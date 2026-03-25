@@ -8,9 +8,59 @@
       name="description"
       content="ClosetVault is a secure cloud storage and synchronization platform with sharing, folders, trash restore, upload progress, and a Windows-like explorer."
     />
+    <script>
+      (() => {
+        try {
+          const validThemes = [
+            "dark",
+            "light",
+            "system",
+            "summer",
+            "autumn",
+            "winter",
+            "spring",
+            "ocean",
+            "sunset",
+          ];
+          const savedTheme = localStorage.getItem("closetvault.theme");
+          const theme = validThemes.includes(savedTheme) ? savedTheme : "dark";
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.dataset.colorMode =
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark";
+
+          const entries =
+            typeof performance.getEntriesByType === "function"
+              ? performance.getEntriesByType("navigation")
+              : [];
+          const navigationType = entries[0]?.type ?? performance.navigation?.type;
+
+          if (navigationType === "reload" || navigationType === 1) {
+            document.documentElement.classList.add("show-reload-splash");
+            window.__closetvaultReloadSplashStartedAt = performance.now();
+          }
+        } catch {}
+      })();
+    </script>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <div id="reload-splash" class="reload-splash" aria-hidden="true">
+      <div class="reload-splash-card">
+        <span class="reload-splash-mark">CV</span>
+        <div class="reload-splash-copy">
+          <p class="kicker">Reloading ClosetVault</p>
+          <h2>Reopening your secure explorer...</h2>
+          <p>Your Closet. Secure Vault.</p>
+        </div>
+        <div class="reload-splash-progress">
+          <span></span>
+        </div>
+      </div>
+    </div>
+
     <div class="ambient ambient-left"></div>
     <div class="ambient ambient-right"></div>
 
@@ -198,6 +248,9 @@
                 </button>
                 <button id="new-folder-button" class="ghost-button" type="button">
                   New folder
+                </button>
+                <button id="settings-button" class="ghost-button" type="button">
+                  Settings
                 </button>
                 <button id="logout-button" class="ghost-button" type="button">
                   Lock vault
@@ -467,6 +520,58 @@
       </section>
     </div>
 
+    <div id="settings-backdrop" class="preview-backdrop hidden">
+      <section
+        class="settings-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-title"
+      >
+        <div class="preview-header">
+          <div>
+            <p class="kicker">Settings</p>
+            <h3 id="settings-title">Customize ClosetVault</h3>
+            <p class="dialog-description">
+              Choose how the vault looks across the dashboard, dialogs, and shared pages.
+            </p>
+          </div>
+          <button id="settings-close" class="ghost-button" type="button">Close</button>
+        </div>
+
+        <form id="settings-form" class="settings-layout">
+          <label class="dialog-field">
+            <span>Theme</span>
+            <select id="theme-select">
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+              <option value="system">System</option>
+              <option value="summer">Summer</option>
+              <option value="autumn">Autumn</option>
+              <option value="winter">Winter</option>
+              <option value="spring">Spring</option>
+              <option value="ocean">Ocean</option>
+              <option value="sunset">Sunset</option>
+            </select>
+          </label>
+
+          <div class="settings-preview">
+            <p class="sidebar-label">Theme notes</p>
+            <p id="theme-description" class="sidebar-note">
+              Keep ClosetVault in its original dark explorer look.
+            </p>
+          </div>
+
+          <div class="dialog-actions">
+            <button id="settings-cancel" class="ghost-button" type="button">Cancel</button>
+            <button id="settings-submit" class="primary-button" type="submit">
+              Save settings
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <script src="/theme.js" defer></script>
     <script src="/app.js" defer></script>
   </body>
 </html>

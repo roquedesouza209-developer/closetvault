@@ -9,6 +9,11 @@ const state = {
   token: shareToken,
 };
 
+const reloadSplashState = {
+  active: document.documentElement.classList.contains("show-reload-splash"),
+  minimumMs: 650,
+};
+
 const elements = {
   banner: document.getElementById("share-page-banner"),
   detailDate: document.getElementById("share-detail-date"),
@@ -34,6 +39,21 @@ const elements = {
   title: document.getElementById("share-page-title"),
   unlockPanel: document.getElementById("share-unlock-panel"),
 };
+
+function dismissReloadSplash() {
+  if (!reloadSplashState.active) {
+    return;
+  }
+
+  reloadSplashState.active = false;
+  const startedAt = Number(window.__closetvaultReloadSplashStartedAt || 0);
+  const elapsed = startedAt ? performance.now() - startedAt : reloadSplashState.minimumMs;
+  const remaining = Math.max(0, reloadSplashState.minimumMs - elapsed);
+
+  window.setTimeout(() => {
+    document.documentElement.classList.remove("show-reload-splash");
+  }, remaining);
+}
 
 function setBanner(message, tone = "info") {
   if (!message) {
@@ -341,4 +361,4 @@ elements.downloadButton.addEventListener("click", () => {
 });
 
 render();
-loadShare();
+loadShare().finally(dismissReloadSplash);

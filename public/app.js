@@ -44,6 +44,18 @@ const shareDialogState = {
   share: null,
 };
 
+const reloadSplashState = {
+  active: document.documentElement.classList.contains("show-reload-splash"),
+  minimumMs: 650,
+};
+
+const themeDescriptions = Object.fromEntries(
+  (window.ClosetVaultTheme?.getThemeOptions?.() || []).map((option) => [
+    option.value,
+    option.description,
+  ]),
+);
+
 let searchTimer = null;
 
 const elements = {
@@ -97,6 +109,12 @@ const elements = {
   refreshButton: document.getElementById("refresh-button"),
   registerForm: document.getElementById("register-form"),
   searchInput: document.getElementById("search-input"),
+  settingsBackdrop: document.getElementById("settings-backdrop"),
+  settingsButton: document.getElementById("settings-button"),
+  settingsCancel: document.getElementById("settings-cancel"),
+  settingsClose: document.getElementById("settings-close"),
+  settingsForm: document.getElementById("settings-form"),
+  settingsSubmit: document.getElementById("settings-submit"),
   shareBackdrop: document.getElementById("share-backdrop"),
   shareClose: document.getElementById("share-close"),
   shareCopy: document.getElementById("share-copy"),
@@ -117,6 +135,8 @@ const elements = {
   storageDriver: document.getElementById("storage-driver"),
   storageTotal: document.getElementById("storage-total"),
   tabButtons: Array.from(document.querySelectorAll(".tab-button")),
+  themeDescription: document.getElementById("theme-description"),
+  themeSelect: document.getElementById("theme-select"),
   trashBanner: document.getElementById("trash-banner"),
   trashCount: document.getElementById("trash-count"),
   uploadButton: document.getElementById("upload-button"),
@@ -126,6 +146,70 @@ const elements = {
   vaultPanel: document.getElementById("vault-panel"),
   viewButtons: Array.from(document.querySelectorAll("[data-view]")),
 };
+
+function dismissReloadSplash() {
+  if (!reloadSplashState.active) {
+    return;
+  }
+
+  reloadSplashState.active = false;
+  const startedAt = Number(window.__closetvaultReloadSplashStartedAt || 0);
+  const elapsed = startedAt ? performance.now() - startedAt : reloadSplashState.minimumMs;
+  const remaining = Math.max(0, reloadSplashState.minimumMs - elapsed);
+
+  window.setTimeout(() => {
+    document.documentElement.classList.remove("show-reload-splash");
+  }, remaining);
+}
+
+function currentThemePreference() {
+  return window.ClosetVaultTheme?.getThemePreference?.() || "dark";
+}
+
+function updateThemeDescription() {
+  if (!elements.themeDescription || !elements.themeSelect) {
+    return;
+  }
+
+  elements.themeDescription.textContent =
+    themeDescriptions[elements.themeSelect.value] ||
+    "Choose a theme for ClosetVault.";
+}
+
+function closeSettings() {
+  elements.settingsBackdrop?.classList.add("hidden");
+}
+
+function openSettings() {
+  if (!elements.themeSelect) {
+    return;
+  }
+
+  elements.themeSelect.value = currentThemePreference();
+  updateThemeDescription();
+  elements.settingsBackdrop.classList.remove("hidden");
+}
+
+async function submitSettings(event) {
+  event.preventDefault();
+
+  if (!elements.themeSelect) {
+    return;
+  }
+
+  elements.settingsSubmit.disabled = true;
+  elements.settingsSubmit.textContent = "Saving...";
+
+  try {
+    const appliedTheme = window.ClosetVaultTheme?.applyTheme?.(elements.themeSelect.value) || "dark";
+    updateThemeDescription();
+    closeSettings();
+    setMessage(`${appliedTheme[0].toUpperCase()}${appliedTheme.slice(1)} theme applied.`, "success");
+  } finally {
+    elements.settingsSubmit.disabled = false;
+    elements.settingsSubmit.textContent = "Save settings";
+  }
+}
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (character) => {
@@ -935,6 +1019,7 @@ async function restoreSession() {
       state.user = null;
       state.items = [];
       state.sharedWithMe = [];
+      closeSettings();
       closeShareModal();
       renderExplorer();
       setDashboardVisibility(false);
@@ -1095,6 +1180,7 @@ async function handleLogout() {
   try {
     await api("/api/auth/logout", { method: "POST" });
     closePreview();
+    closeSettings();
     closeShareModal();
     state.currentFolder = { breadcrumb: [{ id: null, name: "Vault" }], id: null, name: "Vault", parentId: null };
     state.folderTree = [];
@@ -1348,6 +1434,7 @@ function bindEvents() {
   elements.registerForm.addEventListener("submit", submitRegister);
   elements.loginForm.addEventListener("submit", submitLogin);
   elements.logoutButton.addEventListener("click", handleLogout);
+  elements.settingsButton.addEventListener("click", openSettings);
   elements.uploadButton.addEventListener("click", () => elements.fileInput.click());
   elements.newFolderButton.addEventListener("click", () => {
     promptCreateFolder().catch((error) => setMessage(error.message, "error"));
@@ -1403,6 +1490,15 @@ function bindEvents() {
       closeDialog(null);
     }
   });
+  elements.settingsClose.addEventListener("click", closeSettings);
+  elements.settingsCancel.addEventListener("click", closeSettings);
+  elements.settingsBackdrop.addEventListener("click", (event) => {
+    if (event.target === elements.settingsBackdrop) {
+      closeSettings();
+    }
+  });
+  elements.settingsForm.addEventListener("submit", submitSettings);
+  elements.themeSelect.addEventListener("change", updateThemeDescription);
   elements.previewClose.addEventListener("click", closePreview);
   elements.previewBackdrop.addEventListener("click", (event) => {
     if (event.target === elements.previewBackdrop) {
@@ -1450,6 +1546,11 @@ function bindEvents() {
         return;
       }
 
+      if (!elements.settingsBackdrop.classList.contains("hidden")) {
+        closeSettings();
+        return;
+      }
+
       if (!elements.dialogBackdrop.classList.contains("hidden")) {
         closeDialog(null);
       }
@@ -1461,4 +1562,4 @@ function bindEvents() {
 bindEvents();
 setAuthTab("register");
 renderExplorer();
-restoreSession();
+restoreSession().finally(dismissReloadSplash);
