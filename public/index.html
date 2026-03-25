@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ClosetVault | Your Closet. Secure Vault.</title>
+    <meta
+      name="description"
+      content="ClosetVault is a secure cloud storage and synchronization platform for storing, managing, uploading, and downloading files from any device."
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-left"></div>
+    <div class="ambient ambient-right"></div>
+
+    <header class="topbar">
+      <a class="brand" href="/">
+        <span class="brand-mark">CV</span>
+        <span class="brand-copy">
+          <strong>ClosetVault</strong>
+          <small>Your Closet. Secure Vault.</small>
+        </span>
+      </a>
+
+      <nav class="topnav">
+        <a href="#features">Features</a>
+        <a href="#workflow">Workflow</a>
+        <a href="#security">Security</a>
+        <button id="jump-to-vault" class="ghost-button" type="button">
+          Open Vault
+        </button>
+      </nav>
+    </header>
+
+    <main class="layout-shell">
+      <section class="story-panel">
+        <p class="kicker">Encrypted Cloud Storage</p>
+        <h1>Store, sync, and recover files in a vault built for everyday life.</h1>
+        <p class="lede">
+          ClosetVault is a cloud storage and synchronization platform for people
+          who want one secure place to upload, organize, download, and access
+          their files from anywhere.
+        </p>
+
+        <div class="cta-row">
+          <button id="create-vault-cta" class="primary-button" type="button">
+            Create Your Vault
+          </button>
+          <a class="secondary-link" href="#workflow">See how it works</a>
+        </div>
+
+        <section class="stat-strip" aria-label="Product highlights">
+          <article class="stat-card">
+            <span>Encrypted At Rest</span>
+            <strong>Password-derived vault keys</strong>
+          </article>
+          <article class="stat-card">
+            <span>Any Device Access</span>
+            <strong>One account, one secure workspace</strong>
+          </article>
+          <article class="stat-card">
+            <span>Sharing Roadmap</span>
+            <strong>Secure links coming next</strong>
+          </article>
+        </section>
+
+        <section id="features" class="feature-grid">
+          <article class="feature-card">
+            <p class="feature-index">01</p>
+            <h2>Upload With Confidence</h2>
+            <p>
+              Add documents, images, and working files into a storage flow that
+              prioritizes clean handling and encrypted persistence on disk.
+            </p>
+          </article>
+          <article class="feature-card">
+            <p class="feature-index">02</p>
+            <h2>Manage Cleanly</h2>
+            <p>
+              Review file counts, track storage use, download what you need, and
+              remove clutter without losing sight of your vault activity.
+            </p>
+          </article>
+          <article class="feature-card">
+            <p class="feature-index">03</p>
+            <h2>Stay Ready To Sync</h2>
+            <p>
+              The product language and architecture are prepared for multi-device
+              usage and future sharing, versioning, and background sync.
+            </p>
+          </article>
+        </section>
+
+        <section id="workflow" class="workflow-panel">
+          <div class="section-heading">
+            <p class="kicker">Vault Flow</p>
+            <h2>A simple path from upload to retrieval.</h2>
+          </div>
+
+          <div class="workflow-grid">
+            <article class="workflow-step">
+              <span>Step 1</span>
+              <h3>Create or unlock your vault</h3>
+              <p>Use your account to reach the same secure space from any browser.</p>
+            </article>
+            <article class="workflow-step">
+              <span>Step 2</span>
+              <h3>Upload and organize files</h3>
+              <p>Files are encrypted before they are stored on disk by the backend.</p>
+            </article>
+            <article class="workflow-step">
+              <span>Step 3</span>
+              <h3>Download when needed</h3>
+              <p>Retrieve the exact file you need while your authenticated session is active.</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="security" class="security-panel">
+          <div class="section-heading">
+            <p class="kicker">Security Notes</p>
+            <h2>What this MVP protects today.</h2>
+          </div>
+
+          <ul class="security-list">
+            <li>Passwords are hashed with scrypt before they are written to disk.</li>
+            <li>Uploaded file contents are encrypted at rest and only unlocked during an active session.</li>
+            <li>Secure link sharing and deeper synchronization controls are intentionally staged as next steps.</li>
+          </ul>
+        </section>
+      </section>
+
+      <aside id="vault-panel" class="vault-panel">
+        <div id="message-banner" class="message-banner hidden" aria-live="polite"></div>
+
+        <section id="auth-view" class="panel-stack">
+          <div class="panel-header">
+            <p class="kicker">Vault Access</p>
+            <h2>Unlock your private file space.</h2>
+            <p>
+              Create an account once, then return from any device to upload,
+              manage, and recover your files.
+            </p>
+          </div>
+
+          <div class="auth-switch" role="tablist" aria-label="Authentication mode">
+            <button class="tab-button is-active" type="button" data-tab="register">
+              Create account
+            </button>
+            <button class="tab-button" type="button" data-tab="login">
+              Sign in
+            </button>
+          </div>
+
+          <form id="register-form" class="auth-form">
+            <label>
+              <span>Name</span>
+              <input id="register-name" name="name" type="text" minlength="2" required />
+            </label>
+            <label>
+              <span>Email</span>
+              <input id="register-email" name="email" type="email" required />
+            </label>
+            <label>
+              <span>Password</span>
+              <input
+                id="register-password"
+                name="password"
+                type="password"
+                minlength="8"
+                required
+              />
+            </label>
+            <button id="register-submit" class="primary-button wide" type="submit">
+              Create vault
+            </button>
+          </form>
+
+          <form id="login-form" class="auth-form hidden">
+            <label>
+              <span>Email</span>
+              <input id="login-email" name="email" type="email" required />
+            </label>
+            <label>
+              <span>Password</span>
+              <input id="login-password" name="password" type="password" required />
+            </label>
+            <button id="login-submit" class="primary-button wide" type="submit">
+              Unlock vault
+            </button>
+          </form>
+
+          <p class="footnote">
+            Your password powers account access. Keep it safe and memorable.
+          </p>
+        </section>
+
+        <section id="dashboard-view" class="panel-stack hidden">
+          <div class="dashboard-header">
+            <div>
+              <p class="kicker">Vault Unlocked</p>
+              <h2 id="dashboard-title">Welcome to ClosetVault</h2>
+              <p id="dashboard-subtitle">Your secure file workspace is ready.</p>
+            </div>
+            <button id="logout-button" class="ghost-button" type="button">
+              Lock vault
+            </button>
+          </div>
+
+          <section class="summary-grid" aria-label="Vault summary">
+            <article class="summary-card">
+              <span>Files</span>
+              <strong id="files-count">0</strong>
+            </article>
+            <article class="summary-card">
+              <span>Storage Used</span>
+              <strong id="storage-used">0 B</strong>
+            </article>
+            <article class="summary-card">
+              <span>Recent Uploads</span>
+              <strong id="recent-uploads">0</strong>
+            </article>
+          </section>
+
+          <section class="uploader-card">
+            <div class="panel-title-row">
+              <div>
+                <p class="kicker">Upload Files</p>
+                <h3>Store something new</h3>
+              </div>
+              <p id="limit-hint" class="limit-hint">MVP limit: 10 MB per file.</p>
+            </div>
+
+            <label id="dropzone" class="dropzone" for="file-input">
+              <input id="file-input" type="file" multiple />
+              <span>Drop files here or click to browse</span>
+              <small>Supported for documents, images, notes, and more.</small>
+            </label>
+
+            <p id="upload-status" class="upload-status">No upload in progress.</p>
+          </section>
+
+          <section class="files-card">
+            <div class="panel-title-row">
+              <div>
+                <p class="kicker">Vault Contents</p>
+                <h3>Your stored files</h3>
+              </div>
+              <button id="refresh-button" class="ghost-button" type="button">
+                Refresh
+              </button>
+            </div>
+
+            <div id="file-empty" class="empty-state">
+              <h4>Your vault is empty.</h4>
+              <p>Upload a file to start building your secure workspace.</p>
+            </div>
+
+            <div id="file-list" class="file-list"></div>
+          </section>
+
+          <section class="roadmap-card">
+            <div class="panel-title-row">
+              <div>
+                <p class="kicker">Roadmap</p>
+                <h3>Where ClosetVault goes next</h3>
+              </div>
+            </div>
+
+            <div class="roadmap-grid">
+              <article>
+                <span>Share Links</span>
+                <p>Secure, revocable file sharing for trusted collaborators.</p>
+              </article>
+              <article>
+                <span>Device Sync</span>
+                <p>Background synchronization status and conflict awareness.</p>
+              </article>
+              <article>
+                <span>Version History</span>
+                <p>Restore older file states without overwriting your latest work.</p>
+              </article>
+            </div>
+          </section>
+        </section>
+      </aside>
+    </main>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>

@@ -1,5 +1,12 @@
 {
   "name": "closetvault",
   "version": "1.0.0",
-  "private": true
+  "private": true,
+  "description": "ClosetVault - Your Closet. Secure Vault.",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "test": "node scripts/smoke-test.js"
+  }
 }
