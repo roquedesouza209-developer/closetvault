@@ -6,7 +6,7 @@
     <title>ClosetVault | Your Closet. Secure Vault.</title>
     <meta
       name="description"
-      content="ClosetVault is a secure cloud storage and synchronization platform for storing, managing, uploading, and downloading files from any device."
+      content="ClosetVault is a secure cloud storage and synchronization platform with sharing, folders, trash restore, upload progress, and a Windows-like explorer."
     />
     <link rel="stylesheet" href="/styles.css" />
   </head>
@@ -34,85 +34,85 @@
     </header>
 
     <main class="layout-shell">
-      <section class="story-panel">
-        <p class="kicker">Encrypted Cloud Storage</p>
-        <h1>Store, sync, and recover files in a vault built for everyday life.</h1>
+      <section id="story-panel" class="story-panel">
+        <p class="kicker">Secure File Explorer</p>
+        <h1>Store, sort, recover, and move files like a private cloud drive.</h1>
         <p class="lede">
-          ClosetVault is a cloud storage and synchronization platform for people
-          who want one secure place to upload, organize, download, and access
-          their files from anywhere.
+          ClosetVault now includes folders, upload progress, trash restore,
+          search, sorting, list and grid views, and a storage architecture
+          ready for S3-compatible object storage.
         </p>
 
         <div class="cta-row">
           <button id="create-vault-cta" class="primary-button" type="button">
             Create Your Vault
           </button>
-          <a class="secondary-link" href="#workflow">See how it works</a>
+          <a class="secondary-link" href="#workflow">See the explorer flow</a>
         </div>
 
         <section class="stat-strip" aria-label="Product highlights">
           <article class="stat-card">
-            <span>Encrypted At Rest</span>
-            <strong>Password-derived vault keys</strong>
+            <span>Explorer UI</span>
+            <strong>Folders, trash, grid, list, search, sort</strong>
           </article>
           <article class="stat-card">
-            <span>Any Device Access</span>
-            <strong>One account, one secure workspace</strong>
+            <span>Storage Layer</span>
+            <strong>Encrypted objects with S3-compatible architecture</strong>
           </article>
           <article class="stat-card">
-            <span>Sharing Roadmap</span>
-            <strong>Secure links coming next</strong>
+            <span>Metadata</span>
+            <strong>SQLite-backed explorer state and usage tracking</strong>
           </article>
         </section>
 
         <section id="features" class="feature-grid">
           <article class="feature-card">
             <p class="feature-index">01</p>
-            <h2>Upload With Confidence</h2>
+            <h2>Upload Almost Anything</h2>
             <p>
-              Add documents, images, and working files into a storage flow that
-              prioritizes clean handling and encrypted persistence on disk.
+              Documents, images, videos, and audio files can be dragged in,
+              uploaded in batches, and tracked with live progress.
             </p>
           </article>
           <article class="feature-card">
             <p class="feature-index">02</p>
-            <h2>Manage Cleanly</h2>
+            <h2>Organize Like Explorer</h2>
             <p>
-              Review file counts, track storage use, download what you need, and
-              remove clutter without losing sight of your vault activity.
+              Create folders, rename items, move files between folders, switch
+              between list and grid, and sort the workspace your way.
             </p>
           </article>
           <article class="feature-card">
             <p class="feature-index">03</p>
-            <h2>Stay Ready To Sync</h2>
+            <h2>Recover From Trash</h2>
             <p>
-              The product language and architecture are prepared for multi-device
-              usage and future sharing, versioning, and background sync.
+              Deletions are soft by default, so files can be restored from trash
+              without losing their encrypted storage object.
             </p>
           </article>
         </section>
 
         <section id="workflow" class="workflow-panel">
           <div class="section-heading">
-            <p class="kicker">Vault Flow</p>
-            <h2>A simple path from upload to retrieval.</h2>
+            <p class="kicker">Workflow</p>
+            <h2>A clean path from upload to recovery.</h2>
           </div>
 
           <div class="workflow-grid">
             <article class="workflow-step">
               <span>Step 1</span>
-              <h3>Create or unlock your vault</h3>
-              <p>Use your account to reach the same secure space from any browser.</p>
+              <h3>Unlock your vault</h3>
+              <p>Sign in once and open the same explorer from any browser session.</p>
             </article>
             <article class="workflow-step">
               <span>Step 2</span>
-              <h3>Upload and organize files</h3>
-              <p>Files are encrypted before they are stored on disk by the backend.</p>
+              <h3>Organize and manage</h3>
+              <p>Create folders, move files, rename items, and monitor storage usage.</p>
             </article>
             <article class="workflow-step">
               <span>Step 3</span>
-              <h3>Download when needed</h3>
-              <p>Retrieve the exact file you need while your authenticated session is active.</p>
+              <h3>Restore or download</h3>
+              <p>Download active files or recover deleted ones from the Trash view.</p>
             </article>
           </div>
         </section>
@@ -120,13 +120,13 @@
         <section id="security" class="security-panel">
           <div class="section-heading">
             <p class="kicker">Security Notes</p>
-            <h2>What this MVP protects today.</h2>
+            <h2>What this build protects right now.</h2>
           </div>
 
           <ul class="security-list">
-            <li>Passwords are hashed with scrypt before they are written to disk.</li>
-            <li>Uploaded file contents are encrypted at rest and only unlocked during an active session.</li>
-            <li>Secure link sharing and deeper synchronization controls are intentionally staged as next steps.</li>
+            <li>Passwords are hashed with scrypt before they are stored.</li>
+            <li>File objects are encrypted at rest and decrypted only during active sessions.</li>
+            <li>Metadata lives in SQLite while file content lives in an object-storage layer.</li>
           </ul>
         </section>
       </section>
@@ -137,10 +137,10 @@
         <section id="auth-view" class="panel-stack">
           <div class="panel-header">
             <p class="kicker">Vault Access</p>
-            <h2>Unlock your private file space.</h2>
+            <h2>Unlock your private file explorer.</h2>
             <p>
-              Create an account once, then return from any device to upload,
-              manage, and recover your files.
+              Create an account once, then come back from any device to manage
+              the same secure workspace.
             </p>
           </div>
 
@@ -156,136 +156,316 @@
           <form id="register-form" class="auth-form">
             <label>
               <span>Name</span>
-              <input id="register-name" name="name" type="text" minlength="2" required />
+              <input name="name" type="text" minlength="2" required />
             </label>
             <label>
               <span>Email</span>
-              <input id="register-email" name="email" type="email" required />
+              <input name="email" type="email" required />
             </label>
             <label>
               <span>Password</span>
-              <input
-                id="register-password"
-                name="password"
-                type="password"
-                minlength="8"
-                required
-              />
+              <input name="password" type="password" minlength="8" required />
             </label>
-            <button id="register-submit" class="primary-button wide" type="submit">
-              Create vault
-            </button>
+            <button class="primary-button wide" type="submit">Create vault</button>
           </form>
 
           <form id="login-form" class="auth-form hidden">
             <label>
               <span>Email</span>
-              <input id="login-email" name="email" type="email" required />
+              <input name="email" type="email" required />
             </label>
             <label>
               <span>Password</span>
-              <input id="login-password" name="password" type="password" required />
+              <input name="password" type="password" required />
             </label>
-            <button id="login-submit" class="primary-button wide" type="submit">
-              Unlock vault
-            </button>
+            <button class="primary-button wide" type="submit">Unlock vault</button>
           </form>
-
-          <p class="footnote">
-            Your password powers account access. Keep it safe and memorable.
-          </p>
         </section>
 
-        <section id="dashboard-view" class="panel-stack hidden">
-          <div class="dashboard-header">
-            <div>
-              <p class="kicker">Vault Unlocked</p>
-              <h2 id="dashboard-title">Welcome to ClosetVault</h2>
-              <p id="dashboard-subtitle">Your secure file workspace is ready.</p>
+        <section id="dashboard-view" class="explorer-view hidden">
+          <div class="explorer-window">
+            <div class="explorer-header">
+              <div>
+                <p class="kicker">Vault Explorer</p>
+                <h2 id="dashboard-title">ClosetVault Explorer</h2>
+                <p id="dashboard-subtitle" class="explorer-subtitle">
+                  Your secure file workspace is ready.
+                </p>
+              </div>
+              <div class="header-actions">
+                <button id="upload-button" class="primary-button" type="button">
+                  Upload files
+                </button>
+                <button id="new-folder-button" class="ghost-button" type="button">
+                  New folder
+                </button>
+                <button id="logout-button" class="ghost-button" type="button">
+                  Lock vault
+                </button>
+              </div>
             </div>
-            <button id="logout-button" class="ghost-button" type="button">
-              Lock vault
-            </button>
+
+            <section class="summary-grid explorer-summary">
+              <article class="summary-card">
+                <span>Storage Used</span>
+                <strong id="storage-total">0 B</strong>
+              </article>
+              <article class="summary-card">
+                <span>Files</span>
+                <strong id="files-count">0</strong>
+              </article>
+              <article class="summary-card">
+                <span>Folders</span>
+                <strong id="folders-count">0</strong>
+              </article>
+              <article class="summary-card">
+                <span>Trash</span>
+                <strong id="trash-count">0</strong>
+              </article>
+            </section>
+
+            <section class="explorer-toolbar">
+              <div class="toolbar-left">
+                <button id="quick-root" class="toolbar-pill is-active" type="button">
+                  Vault
+                </button>
+                <button id="quick-trash" class="toolbar-pill" type="button">
+                  Trash
+                </button>
+                <button id="refresh-button" class="toolbar-pill" type="button">
+                  Refresh
+                </button>
+              </div>
+
+              <div class="toolbar-right">
+                <input
+                  id="search-input"
+                  class="search-input"
+                  type="search"
+                  placeholder="Search current view"
+                />
+                <select id="sort-field" class="select-control">
+                  <option value="date">Date modified</option>
+                  <option value="name">Name</option>
+                  <option value="size">Size</option>
+                </select>
+                <select id="sort-direction" class="select-control">
+                  <option value="desc">Descending</option>
+                  <option value="asc">Ascending</option>
+                </select>
+                <div class="view-switch">
+                  <button class="toolbar-pill is-active" data-view="list" type="button">
+                    List
+                  </button>
+                  <button class="toolbar-pill" data-view="grid" type="button">
+                    Grid
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <div class="explorer-body">
+              <aside class="explorer-sidebar">
+                <section class="sidebar-section">
+                  <p class="sidebar-label">Folders</p>
+                  <div id="folder-tree" class="folder-tree"></div>
+                </section>
+
+                <section class="sidebar-section">
+                  <p class="sidebar-label">Storage</p>
+                  <div class="usage-meter">
+                    <span id="usage-fill"></span>
+                  </div>
+                  <p id="usage-caption" class="sidebar-note">0 B used</p>
+                  <p id="limit-hint" class="sidebar-note">Per-file limit: 0 B</p>
+                  <p id="storage-driver" class="sidebar-note">Storage backend: pending</p>
+                </section>
+
+                <section class="sidebar-section">
+                  <div class="sidebar-heading-row">
+                    <p class="sidebar-label">Shared with me</p>
+                    <span id="shared-with-me-count" class="sidebar-note">0 links</span>
+                  </div>
+                  <div id="shared-with-me-list" class="shared-list"></div>
+                </section>
+              </aside>
+
+              <section class="explorer-main">
+                <div id="breadcrumb" class="breadcrumb"></div>
+
+                <label id="dropzone" class="dropzone explorer-dropzone" for="file-input">
+                  <input id="file-input" type="file" multiple />
+                  <span>Drop files here or click to browse</span>
+                  <small>Upload documents, images, videos, and audio into the current folder.</small>
+                </label>
+
+                <div id="upload-queue" class="upload-queue hidden"></div>
+
+                <div id="trash-banner" class="trash-banner hidden">
+                  Trash holds deleted files until you restore or permanently remove them.
+                </div>
+
+                <div id="items-header" class="items-header">
+                  <span>Name</span>
+                  <span>Date modified</span>
+                  <span>Type</span>
+                  <span>Size</span>
+                  <span>Actions</span>
+                </div>
+
+                <div id="explorer-empty" class="empty-state hidden">
+                  <h4>This view is empty.</h4>
+                  <p>Upload a file or create a folder to start building your vault.</p>
+                </div>
+
+                <div id="explorer-items" class="explorer-items"></div>
+              </section>
+            </div>
           </div>
-
-          <section class="summary-grid" aria-label="Vault summary">
-            <article class="summary-card">
-              <span>Files</span>
-              <strong id="files-count">0</strong>
-            </article>
-            <article class="summary-card">
-              <span>Storage Used</span>
-              <strong id="storage-used">0 B</strong>
-            </article>
-            <article class="summary-card">
-              <span>Recent Uploads</span>
-              <strong id="recent-uploads">0</strong>
-            </article>
-          </section>
-
-          <section class="uploader-card">
-            <div class="panel-title-row">
-              <div>
-                <p class="kicker">Upload Files</p>
-                <h3>Store something new</h3>
-              </div>
-              <p id="limit-hint" class="limit-hint">MVP limit: 10 MB per file.</p>
-            </div>
-
-            <label id="dropzone" class="dropzone" for="file-input">
-              <input id="file-input" type="file" multiple />
-              <span>Drop files here or click to browse</span>
-              <small>Supported for documents, images, notes, and more.</small>
-            </label>
-
-            <p id="upload-status" class="upload-status">No upload in progress.</p>
-          </section>
-
-          <section class="files-card">
-            <div class="panel-title-row">
-              <div>
-                <p class="kicker">Vault Contents</p>
-                <h3>Your stored files</h3>
-              </div>
-              <button id="refresh-button" class="ghost-button" type="button">
-                Refresh
-              </button>
-            </div>
-
-            <div id="file-empty" class="empty-state">
-              <h4>Your vault is empty.</h4>
-              <p>Upload a file to start building your secure workspace.</p>
-            </div>
-
-            <div id="file-list" class="file-list"></div>
-          </section>
-
-          <section class="roadmap-card">
-            <div class="panel-title-row">
-              <div>
-                <p class="kicker">Roadmap</p>
-                <h3>Where ClosetVault goes next</h3>
-              </div>
-            </div>
-
-            <div class="roadmap-grid">
-              <article>
-                <span>Share Links</span>
-                <p>Secure, revocable file sharing for trusted collaborators.</p>
-              </article>
-              <article>
-                <span>Device Sync</span>
-                <p>Background synchronization status and conflict awareness.</p>
-              </article>
-              <article>
-                <span>Version History</span>
-                <p>Restore older file states without overwriting your latest work.</p>
-              </article>
-            </div>
-          </section>
         </section>
       </aside>
     </main>
+
+    <div id="dialog-backdrop" class="dialog-backdrop hidden">
+      <form id="dialog-form" class="dialog-card">
+        <div class="dialog-copy">
+          <p class="kicker">Explorer Action</p>
+          <h3 id="dialog-title">Update item</h3>
+          <p id="dialog-description" class="dialog-description"></p>
+        </div>
+
+        <label id="dialog-input-wrap" class="dialog-field">
+          <span id="dialog-input-label">Name</span>
+          <input id="dialog-input" type="text" />
+        </label>
+
+        <label id="dialog-select-wrap" class="dialog-field hidden">
+          <span id="dialog-select-label">Destination</span>
+          <select id="dialog-select"></select>
+        </label>
+
+        <div class="dialog-actions">
+          <button id="dialog-cancel" class="ghost-button" type="button">Cancel</button>
+          <button id="dialog-submit" class="primary-button" type="submit">Save</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="preview-backdrop" class="preview-backdrop hidden">
+      <section class="preview-modal" role="dialog" aria-modal="true" aria-labelledby="preview-title">
+        <div class="preview-header">
+          <div>
+            <p class="kicker">File Preview</p>
+            <h3 id="preview-title">Preview</h3>
+            <p id="preview-subtitle" class="dialog-description"></p>
+          </div>
+          <button id="preview-close" class="ghost-button" type="button">
+            Close
+          </button>
+        </div>
+
+        <div class="preview-layout">
+          <div class="preview-canvas">
+            <div id="preview-empty" class="preview-empty hidden">
+              Preview unavailable for this file type.
+            </div>
+            <img id="preview-image" class="preview-media hidden" alt="" />
+            <video id="preview-video" class="preview-media hidden" controls preload="metadata"></video>
+            <audio id="preview-audio" class="preview-audio hidden" controls preload="metadata"></audio>
+            <iframe
+              id="preview-pdf"
+              class="preview-pdf hidden"
+              title="PDF preview"
+            ></iframe>
+          </div>
+
+          <aside class="preview-meta">
+            <p class="sidebar-label">Details</p>
+            <div class="preview-metadata">
+              <div>
+                <span>File name</span>
+                <strong id="preview-name">-</strong>
+              </div>
+              <div>
+                <span>File type</span>
+                <strong id="preview-type">-</strong>
+              </div>
+              <div>
+                <span>File size</span>
+                <strong id="preview-size">-</strong>
+              </div>
+              <div>
+                <span>Uploaded</span>
+                <strong id="preview-date">-</strong>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </div>
+
+    <div id="share-backdrop" class="preview-backdrop hidden">
+      <section class="share-modal" role="dialog" aria-modal="true" aria-labelledby="share-title">
+        <div class="preview-header">
+          <div>
+            <p class="kicker">File Sharing</p>
+            <h3 id="share-title">Share file</h3>
+            <p id="share-subtitle" class="dialog-description">
+              Generate a secure file link with access controls.
+            </p>
+          </div>
+          <button id="share-close" class="ghost-button" type="button">Close</button>
+        </div>
+
+        <form id="share-form" class="share-layout">
+          <section class="share-column">
+            <label class="dialog-field">
+              <span>Permission</span>
+              <select id="share-permission">
+                <option value="view">View access</option>
+                <option value="edit">Edit access</option>
+              </select>
+            </label>
+
+            <label class="dialog-field">
+              <span>Expires at (optional)</span>
+              <input id="share-expiration" type="datetime-local" />
+            </label>
+
+            <label class="dialog-field">
+              <span>Password (optional)</span>
+              <input
+                id="share-password"
+                type="password"
+                placeholder="Leave blank for no password"
+                minlength="4"
+              />
+            </label>
+
+            <p class="sidebar-note">
+              Generating a new share link replaces the previous active link for this file.
+            </p>
+          </section>
+
+          <section class="share-column share-column-highlight">
+            <label class="dialog-field">
+              <span>Share link</span>
+              <input id="share-link" type="text" readonly placeholder="Generate a link to copy it here" />
+            </label>
+
+            <div id="share-status" class="share-status">
+              No active share link for this file yet.
+            </div>
+
+            <div class="dialog-actions">
+              <button id="share-revoke" class="ghost-button" type="button">Revoke</button>
+              <button id="share-copy" class="ghost-button" type="button">Copy link</button>
+              <button id="share-submit" class="primary-button" type="submit">Generate link</button>
+            </div>
+          </section>
+        </form>
+      </section>
+    </div>
 
     <script src="/app.js" defer></script>
   </body>

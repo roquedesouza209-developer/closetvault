@@ -10,15 +10,13 @@ const tempDataDirectory = path.join(
 
 process.env.CLOSETVAULT_DATA_DIR = tempDataDirectory;
 process.env.CLOSETVAULT_MAX_UPLOAD_MB = "2";
+process.env.CLOSETVAULT_STORAGE_CAP_MB = "8";
 
-const { startServer } = require("../server");
+const { closeResources, startServer } = require("../server");
 
 let server;
 
-async function main() {
-  server = await startServer({ host: "127.0.0.1", port: 0 });
-  const address = server.address();
-  const baseUrl = `http://${address.address}:${address.port}`;
+function createClient(baseUrl) {
   let cookie = "";
 
   async function request(pathname, options = {}) {
@@ -41,75 +39,256 @@ async function main() {
     return response;
   }
 
-  const registerResponse = await request("/api/auth/register", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      name: "Vault Tester",
-      email: "tester@example.com",
-      password: "strong-pass-123",
-    }),
-  });
-  const registerPayload = await registerResponse.json();
+  async function json(pathname, options = {}) {
+    const response = await request(pathname, options);
+    return {
+      payload: await response.json(),
+      response,
+    };
+  }
 
-  assert.equal(registerResponse.status, 201);
-  assert.equal(registerPayload.user.email, "tester@example.com");
-  assert.ok(cookie.includes("closetvault_session="));
+  return {
+    json,
+    request,
+  };
+}
 
-  const fileContents = Buffer.from("ClosetVault smoke test payload", "utf8");
-  const uploadResponse = await request("/api/files/upload", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+async function main() {
+  server = await startServer({ host: "127.0.0.1", port: 0 });
+  const address = server.address();
+  const baseUrl = `http://${address.address}:${address.port}`;
+  const owner = createClient(baseUrl);
+  const viewer = createClient(baseUrl);
+
+  const registerOwner = await owner.json("/api/auth/register", {
     body: JSON.stringify({
-      name: "smoke.txt",
-      type: "text/plain",
-      size: fileContents.length,
-      data: fileContents.toString("base64"),
+      email: "owner@example.com",
+      name: "Vault Owner",
+      password: "owner-pass-123",
     }),
+    headers: { "Content-Type": "application/json" },
+    method: "POST",
   });
+
+  assert.equal(registerOwner.response.status, 201);
+  assert.equal(registerOwner.payload.user.email, "owner@example.com");
+
+  const registerViewer = await viewer.json("/api/auth/register", {
+    body: JSON.stringify({
+      email: "viewer@example.com",
+      name: "Vault Viewer",
+      password: "viewer-pass-123",
+    }),
+    headers: { "Content-Type": "application/json" },
+    method: "POST",
+  });
+
+  assert.equal(registerViewer.response.status, 201);
+  assert.equal(registerViewer.payload.user.email, "viewer@example.com");
+
+  const createFolder = await owner.json("/api/folders", {
+    body: JSON.stringify({
+      name: "Physics",
+      parentId: null,
+    }),
+    headers: { "Content-Type": "application/json" },
+    method: "POST",
+  });
+
+  assert.equal(createFolder.response.status, 201);
+  const folderId = createFolder.payload.folder.id;
+
+  const fileContents = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9VE3Gx8AAAAASUVORK5CYII=",
+    "base64",
+  );
+  const uploadResponse = await owner.request(
+    `/api/files/upload?folderId=${encodeURIComponent(folderId)}`,
+    {
+      body: fileContents,
+      headers: {
+        "Content-Type": "image/png",
+        "X-ClosetVault-Name": encodeURIComponent("thumbnail.png"),
+        "X-ClosetVault-Size": String(fileContents.length),
+      },
+      method: "POST",
+    },
+  );
   const uploadPayload = await uploadResponse.json();
 
   assert.equal(uploadResponse.status, 201);
-  assert.equal(uploadPayload.file.name, "smoke.txt");
+  const fileId = uploadPayload.file.id;
 
-  const listResponse = await request("/api/files");
-  const listPayload = await listResponse.json();
+  const previewResponse = await owner.request(`/api/files/${fileId}/preview`);
+  const previewBuffer = Buffer.from(await previewResponse.arrayBuffer());
 
-  assert.equal(listResponse.status, 200);
-  assert.equal(listPayload.files.length, 1);
+  assert.equal(previewResponse.status, 200);
+  assert.equal(previewResponse.headers.get("content-type"), "image/png");
+  assert.deepEqual(previewBuffer, fileContents);
 
-  const downloadResponse = await request(
-    `/api/files/${listPayload.files[0].id}/download`,
+  const firstShare = await owner.json(`/api/files/${fileId}/shares`, {
+    body: JSON.stringify({
+      password: null,
+      permission: "view",
+    }),
+    headers: { "Content-Type": "application/json" },
+    method: "POST",
+  });
+
+  assert.equal(firstShare.response.status, 201);
+  assert.equal(firstShare.payload.share.permission, "view");
+  const firstSharePath = firstShare.payload.share.sharePath;
+  const firstShareToken = firstSharePath.split("/").pop();
+
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60).toISOString();
+  const secondShare = await owner.json(`/api/files/${fileId}/shares`, {
+    body: JSON.stringify({
+      expiresAt,
+      password: "lock1234",
+      permission: "edit",
+    }),
+    headers: { "Content-Type": "application/json" },
+    method: "POST",
+  });
+
+  assert.equal(secondShare.response.status, 201);
+  assert.equal(secondShare.payload.share.permission, "edit");
+  assert.equal(Boolean(secondShare.payload.share.requiresPassword), true);
+  assert.notEqual(secondShare.payload.share.sharePath, firstSharePath);
+  const shareId = secondShare.payload.share.id;
+  const shareToken = secondShare.payload.share.sharePath.split("/").pop();
+
+  const replacedShareStatus = await viewer.request(`/api/share-links/${firstShareToken}`);
+  assert.equal(replacedShareStatus.status, 404);
+
+  const shareStatus = await viewer.json(`/api/share-links/${shareToken}`);
+  assert.equal(shareStatus.response.status, 200);
+  assert.equal(shareStatus.payload.share.permission, "edit");
+  assert.equal(shareStatus.payload.share.requiresPassword, true);
+  assert.equal(shareStatus.payload.file, null);
+
+  const wrongPasswordResponse = await viewer.request(
+    `/api/share-links/${shareToken}/access`,
+    {
+      body: JSON.stringify({ password: "bad-pass" }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    },
   );
+  const wrongPasswordPayload = await wrongPasswordResponse.json();
+
+  assert.equal(wrongPasswordResponse.status, 401);
+  assert.match(wrongPasswordPayload.error, /password/i);
+
+  const unlockShare = await viewer.json(`/api/share-links/${shareToken}/access`, {
+    body: JSON.stringify({ password: "lock1234" }),
+    headers: { "Content-Type": "application/json" },
+    method: "POST",
+  });
+
+  assert.equal(unlockShare.response.status, 200);
+  assert.equal(unlockShare.payload.file.name, "thumbnail.png");
+  assert.equal(unlockShare.payload.share.permission, "edit");
+  assert.ok(unlockShare.payload.grant);
+  const shareGrant = unlockShare.payload.grant;
+
+  const sharedContentResponse = await viewer.request(
+    `/api/share-links/${shareToken}/content?grant=${encodeURIComponent(shareGrant)}`,
+  );
+  const sharedContentBuffer = Buffer.from(await sharedContentResponse.arrayBuffer());
+
+  assert.equal(sharedContentResponse.status, 200);
+  assert.equal(sharedContentResponse.headers.get("content-type"), "image/png");
+  assert.deepEqual(sharedContentBuffer, fileContents);
+
+  const renameSharedFile = await viewer.json(
+    `/api/share-links/${shareToken}/file?grant=${encodeURIComponent(shareGrant)}`,
+    {
+      body: JSON.stringify({ name: "thumbnail-shared.png" }),
+      headers: { "Content-Type": "application/json" },
+      method: "PATCH",
+    },
+  );
+
+  assert.equal(renameSharedFile.response.status, 200);
+  assert.equal(renameSharedFile.payload.file.name, "thumbnail-shared.png");
+
+  const ownerExplorer = await owner.json(
+    `/api/explorer?folderId=${encodeURIComponent(folderId)}&sortBy=name&sortDirection=asc`,
+  );
+
+  assert.equal(ownerExplorer.response.status, 200);
+  assert.equal(ownerExplorer.payload.items.length, 1);
+  assert.equal(ownerExplorer.payload.items[0].name, "thumbnail-shared.png");
+  assert.equal(ownerExplorer.payload.items[0].share.permission, "edit");
+
+  const viewerExplorer = await viewer.json("/api/explorer");
+
+  assert.equal(viewerExplorer.response.status, 200);
+  assert.equal(viewerExplorer.payload.sharedWithMe.length, 1);
+  assert.equal(viewerExplorer.payload.sharedWithMe[0].file.name, "thumbnail-shared.png");
+
+  const revokeShare = await owner.json(`/api/shares/${shareId}`, {
+    method: "DELETE",
+  });
+
+  assert.equal(revokeShare.response.status, 200);
+
+  const revokedStatus = await viewer.request(`/api/share-links/${shareToken}`);
+  assert.equal(revokedStatus.status, 404);
+
+  const moveFile = await owner.json(`/api/files/${fileId}`, {
+    body: JSON.stringify({ folderId: null }),
+    headers: { "Content-Type": "application/json" },
+    method: "PATCH",
+  });
+
+  assert.equal(moveFile.response.status, 200);
+
+  const moveToTrash = await owner.json(`/api/files/${fileId}`, {
+    method: "DELETE",
+  });
+
+  assert.equal(moveToTrash.response.status, 200);
+
+  const trashView = await owner.json("/api/explorer?trash=1");
+
+  assert.equal(trashView.response.status, 200);
+  assert.equal(trashView.payload.items.length, 1);
+  assert.equal(trashView.payload.items[0].name, "thumbnail-shared.png");
+
+  const restoreFile = await owner.json(`/api/files/${fileId}/restore`, {
+    method: "POST",
+  });
+
+  assert.equal(restoreFile.response.status, 200);
+
+  const downloadResponse = await owner.request(`/api/files/${fileId}/download`);
   const downloadedBuffer = Buffer.from(await downloadResponse.arrayBuffer());
 
   assert.equal(downloadResponse.status, 200);
   assert.deepEqual(downloadedBuffer, fileContents);
 
-  const deleteResponse = await request(`/api/files/${listPayload.files[0].id}`, {
+  const deleteFolder = await owner.json(`/api/folders/${folderId}`, {
     method: "DELETE",
   });
-  const deletePayload = await deleteResponse.json();
 
-  assert.equal(deleteResponse.status, 200);
-  assert.match(deletePayload.message, /removed from your vault/i);
+  assert.equal(deleteFolder.response.status, 200);
 
-  const logoutResponse = await request("/api/auth/logout", {
+  const ownerLogout = await owner.json("/api/auth/logout", {
     method: "POST",
   });
-  const logoutPayload = await logoutResponse.json();
+  const viewerLogout = await viewer.json("/api/auth/logout", {
+    method: "POST",
+  });
 
-  assert.equal(logoutResponse.status, 200);
-  assert.match(logoutPayload.message, /vault locked/i);
+  assert.equal(ownerLogout.response.status, 200);
+  assert.equal(viewerLogout.response.status, 200);
 }
 
 main()
-  .then(async () => {
-    console.log("ClosetVault smoke test passed.");
+  .then(() => {
+    console.log("ClosetVault explorer and sharing smoke test passed.");
   })
   .catch((error) => {
     console.error(error);
@@ -128,6 +307,8 @@ main()
         });
       });
     }
+
+    closeResources();
 
     await fs.rm(tempDataDirectory, { recursive: true, force: true });
   });

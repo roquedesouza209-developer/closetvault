@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ClosetVault Share | Your Closet. Secure Vault.</title>
+    <meta
+      name="description"
+      content="Open a secure ClosetVault shared file link with preview, download, and optional edit access."
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="share-page">
+    <div class="ambient ambient-left"></div>
+    <div class="ambient ambient-right"></div>
+
+    <header class="topbar">
+      <a class="brand" href="/">
+        <span class="brand-mark">CV</span>
+        <span class="brand-copy">
+          <strong>ClosetVault</strong>
+          <small>Your Closet. Secure Vault.</small>
+        </span>
+      </a>
+
+      <nav class="topnav">
+        <a href="/">Back to dashboard</a>
+      </nav>
+    </header>
+
+    <main class="share-page-shell">
+      <section class="share-page-card">
+        <div class="section-heading">
+          <p class="kicker">Shared File</p>
+          <h1 id="share-page-title">Loading shared file...</h1>
+          <p id="share-page-subtitle" class="lede">
+            Secure share metadata is loading.
+          </p>
+        </div>
+
+        <div id="share-page-banner" class="message-banner hidden"></div>
+
+        <div id="share-unlock-panel" class="share-unlock-panel hidden">
+          <p class="sidebar-note">
+            This share link is password protected. Enter the password to unlock the preview and download actions.
+          </p>
+          <form id="share-password-form" class="share-password-form">
+            <label class="dialog-field">
+              <span>Share password</span>
+              <input
+                id="share-password-input"
+                type="password"
+                placeholder="Enter the share password"
+                required
+              />
+            </label>
+            <button id="share-password-submit" class="primary-button" type="submit">
+              Unlock file
+            </button>
+          </form>
+        </div>
+
+        <div class="share-page-layout">
+          <section class="share-viewer-panel">
+            <div id="share-preview-empty" class="preview-empty">
+              Unlock the shared file to load its preview.
+            </div>
+            <img id="share-preview-image" class="preview-media hidden" alt="" />
+            <video
+              id="share-preview-video"
+              class="preview-media hidden"
+              controls
+              preload="metadata"
+            ></video>
+            <audio
+              id="share-preview-audio"
+              class="preview-audio hidden"
+              controls
+              preload="metadata"
+            ></audio>
+            <iframe
+              id="share-preview-pdf"
+              class="preview-pdf hidden"
+              title="Shared PDF preview"
+            ></iframe>
+          </section>
+
+          <aside class="preview-meta">
+            <p class="sidebar-label">Details</p>
+            <div class="preview-metadata">
+              <div>
+                <span>File name</span>
+                <strong id="share-detail-name">-</strong>
+              </div>
+              <div>
+                <span>File type</span>
+                <strong id="share-detail-type">-</strong>
+              </div>
+              <div>
+                <span>File size</span>
+                <strong id="share-detail-size">-</strong>
+              </div>
+              <div>
+                <span>Uploaded</span>
+                <strong id="share-detail-date">-</strong>
+              </div>
+              <div>
+                <span>Shared by</span>
+                <strong id="share-detail-owner">-</strong>
+              </div>
+              <div>
+                <span>Access</span>
+                <strong id="share-detail-permission">-</strong>
+              </div>
+              <div>
+                <span>Link expiration</span>
+                <strong id="share-detail-expiration">No expiration</strong>
+              </div>
+            </div>
+
+            <div class="dialog-actions share-page-actions">
+              <button id="share-download-button" class="primary-button" type="button" disabled>
+                Download
+              </button>
+            </div>
+
+            <form id="share-rename-form" class="share-password-form hidden">
+              <label class="dialog-field">
+                <span>Rename shared file</span>
+                <input id="share-rename-input" type="text" />
+              </label>
+              <button id="share-rename-submit" class="ghost-button" type="submit">
+                Save name
+              </button>
+            </form>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <script src="/share.js" defer></script>
+  </body>
+</html>
