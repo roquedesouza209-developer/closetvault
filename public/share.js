@@ -68,6 +68,8 @@ function setBanner(message, tone = "info") {
   elements.banner.classList.remove("hidden");
 }
 
+window.ClosetVaultSupport?.setNotifier?.(setBanner);
+
 function formatBytes(bytes) {
   if (!Number.isFinite(bytes) || bytes <= 0) {
     return "0 B";

@@ -225,6 +225,14 @@ async function ensureStorageLayout() {
         PRIMARY KEY (user_id, share_id)
       );
 
+      CREATE TABLE IF NOT EXISTS support_requests (
+        id TEXT PRIMARY KEY,
+        user_id TEXT,
+        email TEXT NOT NULL,
+        message TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
       CREATE INDEX IF NOT EXISTS idx_folders_user_parent
         ON folders(user_id, parent_id);
 
@@ -239,6 +247,12 @@ async function ensureStorageLayout() {
 
       CREATE INDEX IF NOT EXISTS idx_shares_token
         ON shares(token);
+
+      CREATE INDEX IF NOT EXISTS idx_support_requests_created_at
+        ON support_requests(created_at DESC);
+
+      CREATE INDEX IF NOT EXISTS idx_support_requests_user
+        ON support_requests(user_id, created_at DESC);
 
       CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_folder_name
         ON folders(user_id, COALESCE(parent_id, ''), LOWER(name));

@@ -188,7 +188,64 @@
       </section>
     </main>
 
+    <button id="support-button" class="support-button" type="button">
+      <span class="support-button-label">Support</span>
+      <small>Need help?</small>
+    </button>
+
+    <div id="support-backdrop" class="preview-backdrop hidden">
+      <section class="support-modal" role="dialog" aria-modal="true" aria-labelledby="support-title">
+        <div class="preview-header">
+          <div>
+            <p class="kicker">Support</p>
+            <h3 id="support-title">Contact ClosetVault support</h3>
+            <p class="dialog-description">
+              Send a quick message and we will follow up by email.
+            </p>
+          </div>
+          <button id="support-close" class="ghost-button" type="button">Close</button>
+        </div>
+
+        <form id="support-form" class="support-form">
+          <label class="dialog-field">
+            <span>Email</span>
+            <input
+              id="support-email"
+              type="email"
+              placeholder="you@example.com"
+              autocomplete="email"
+              required
+            />
+          </label>
+
+          <label class="dialog-field">
+            <span>Message</span>
+            <textarea
+              id="support-message"
+              rows="6"
+              placeholder="Tell us what you need help with."
+              minlength="10"
+              maxlength="2000"
+              required
+            ></textarea>
+          </label>
+
+          <div
+            id="support-feedback"
+            class="support-feedback hidden"
+            aria-live="polite"
+          ></div>
+
+          <div class="dialog-actions">
+            <button id="support-cancel" class="ghost-button" type="button">Cancel</button>
+            <button id="support-submit" class="primary-button" type="submit">Send</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
     <script src="/theme.js" defer></script>
+    <script src="/support-widget.js" defer></script>
     <script src="/share.js" defer></script>
   </body>
 </html>

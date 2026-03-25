@@ -554,6 +554,10 @@ function setMessage(message, tone = "info") {
   elements.messageBanner.classList.remove("hidden");
 }
 
+function syncSupportEmail() {
+  window.ClosetVaultSupport?.setDefaultEmail?.(state.user?.email || "");
+}
+
 function scrollToVault() {
   elements.vaultPanel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -1019,6 +1023,8 @@ async function restoreSession() {
       state.user = null;
       state.items = [];
       state.sharedWithMe = [];
+      syncSupportEmail();
+      window.ClosetVaultSupport?.close?.({ resetForm: true });
       closeSettings();
       closeShareModal();
       renderExplorer();
@@ -1027,6 +1033,7 @@ async function restoreSession() {
     }
 
     state.user = data.user;
+    syncSupportEmail();
     state.storage = data.storage || state.storage;
     state.stats = data.stats || state.stats;
     setDashboardVisibility(true);
@@ -1054,6 +1061,7 @@ async function submitRegister(event) {
     });
 
     state.user = data.user;
+    syncSupportEmail();
     elements.registerForm.reset();
     setDashboardVisibility(true);
     await refreshExplorer();
@@ -1082,6 +1090,7 @@ async function submitLogin(event) {
     });
 
     state.user = data.user;
+    syncSupportEmail();
     elements.loginForm.reset();
     setDashboardVisibility(true);
     await refreshExplorer();
@@ -1182,12 +1191,14 @@ async function handleLogout() {
     closePreview();
     closeSettings();
     closeShareModal();
+    window.ClosetVaultSupport?.close?.({ resetForm: true });
     state.currentFolder = { breadcrumb: [{ id: null, name: "Vault" }], id: null, name: "Vault", parentId: null };
     state.folderTree = [];
     state.items = [];
     state.sharedWithMe = [];
     state.showTrash = false;
     state.user = null;
+    syncSupportEmail();
     renderExplorer();
     setDashboardVisibility(false);
     setMessage("Vault locked.", "info");
@@ -1423,6 +1434,8 @@ function bindDropzone() {
 }
 
 function bindEvents() {
+  window.ClosetVaultSupport?.setNotifier?.(setMessage);
+  syncSupportEmail();
   elements.createVaultCta.addEventListener("click", () => {
     setAuthTab("register");
     scrollToVault();

@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
+const { DatabaseSync } = require("node:sqlite");
 
 const tempDataDirectory = path.join(
   os.tmpdir(),
@@ -12,6 +13,7 @@ process.env.CLOSETVAULT_DATA_DIR = tempDataDirectory;
 process.env.CLOSETVAULT_MAX_UPLOAD_MB = "2";
 process.env.CLOSETVAULT_STORAGE_CAP_MB = "8";
 
+const { DATABASE_FILE } = require("../backend/config");
 const { closeResources, startServer } = require("../server");
 
 let server;
@@ -59,6 +61,7 @@ async function main() {
   const baseUrl = `http://${address.address}:${address.port}`;
   const owner = createClient(baseUrl);
   const viewer = createClient(baseUrl);
+  const guest = createClient(baseUrl);
 
   const registerOwner = await owner.json("/api/auth/register", {
     body: JSON.stringify({
@@ -85,6 +88,52 @@ async function main() {
 
   assert.equal(registerViewer.response.status, 201);
   assert.equal(registerViewer.payload.user.email, "viewer@example.com");
+
+  const ownerSupport = await owner.json("/api/support", {
+    body: JSON.stringify({
+      email: "owner@example.com",
+      message: "Need help reviewing my shared files.",
+    }),
+    headers: { "Content-Type": "application/json" },
+    method: "POST",
+  });
+
+  assert.equal(ownerSupport.response.status, 201);
+  assert.match(ownerSupport.payload.message, /support request sent/i);
+
+  const guestSupport = await guest.json("/api/support", {
+    body: JSON.stringify({
+      email: "guest@example.com",
+      message: "I need help opening a shared ClosetVault link.",
+    }),
+    headers: { "Content-Type": "application/json" },
+    method: "POST",
+  });
+
+  assert.equal(guestSupport.response.status, 201);
+
+  const supportDatabase = new DatabaseSync(DATABASE_FILE);
+  const supportRows = supportDatabase
+    .prepare(
+      `
+        SELECT
+          email,
+          message,
+          user_id AS userId
+        FROM support_requests
+        ORDER BY created_at ASC
+      `,
+    )
+    .all();
+  supportDatabase.close();
+
+  assert.equal(supportRows.length, 2);
+  assert.equal(supportRows[0].email, "owner@example.com");
+  assert.equal(supportRows[0].message, "Need help reviewing my shared files.");
+  assert.equal(supportRows[0].userId, registerOwner.payload.user.id);
+  assert.equal(supportRows[1].email, "guest@example.com");
+  assert.equal(supportRows[1].message, "I need help opening a shared ClosetVault link.");
+  assert.equal(supportRows[1].userId, null);
 
   const createFolder = await owner.json("/api/folders", {
     body: JSON.stringify({

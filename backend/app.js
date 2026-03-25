@@ -67,6 +67,9 @@ const {
 const sessions = new Map();
 const shareGrants = new Map();
 const SHARE_GRANT_TTL_MS = 1000 * 60 * 20;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SUPPORT_MESSAGE_MIN_LENGTH = 10;
+const SUPPORT_MESSAGE_MAX_LENGTH = 2000;
 const SHARE_SNAPSHOT_KEY = crypto
   .createHash("sha256")
   .update(process.env.CLOSETVAULT_SHARE_SECRET || "closetvault-share-snapshot")
@@ -705,7 +708,7 @@ async function handleRegister(req, res) {
   const email = String(body.email || "").trim().toLowerCase();
   const password = String(body.password || "");
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!EMAIL_PATTERN.test(email)) {
     throw createHttpError(400, "Use a valid email address to create your vault.");
   }
 
@@ -782,6 +785,46 @@ async function handleLogin(req, res) {
     },
     { "Set-Cookie": buildSessionCookie(session.token) },
   );
+}
+
+async function handleSupportRequest(req, res) {
+  const session = getSessionFromRequest(req);
+  const body = await readJsonBody(req);
+  const email = String(body.email || "").trim().toLowerCase();
+  const message = String(body.message || "").trim();
+
+  if (!EMAIL_PATTERN.test(email)) {
+    throw createHttpError(400, "Enter a valid support email address.");
+  }
+
+  if (message.length < SUPPORT_MESSAGE_MIN_LENGTH) {
+    throw createHttpError(400, "Add a support message with at least 10 characters.");
+  }
+
+  if (message.length > SUPPORT_MESSAGE_MAX_LENGTH) {
+    throw createHttpError(400, "Support messages must stay under 2000 characters.");
+  }
+
+  dbRun(
+    `
+      INSERT INTO support_requests (
+        id,
+        user_id,
+        email,
+        message,
+        created_at
+      ) VALUES (?, ?, ?, ?, ?)
+    `,
+    crypto.randomUUID(),
+    session?.userId || null,
+    email,
+    message,
+    new Date().toISOString(),
+  );
+
+  sendJson(res, 201, {
+    message: "Support request sent. ClosetVault will follow up by email.",
+  });
 }
 
 async function handleSession(req, res) {
@@ -1620,6 +1663,11 @@ async function handleRequest(req, res) {
 
     if (req.method === "POST" && pathname === "/api/auth/logout") {
       handleLogout(req, res);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/support") {
+      await handleSupportRequest(req, res);
       return;
     }
 
