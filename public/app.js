@@ -11,6 +11,12 @@ const state = {
   items: [],
   previewItem: null,
   search: "",
+  searchInfo: {
+    active: false,
+    mode: "plain",
+    scope: "folder",
+    summary: "",
+  },
   sharedWithMe: [],
   showTrash: false,
   sortBy: localStorage.getItem("closetvault.sortBy") || "date",
@@ -109,6 +115,7 @@ const elements = {
   refreshButton: document.getElementById("refresh-button"),
   registerForm: document.getElementById("register-form"),
   searchInput: document.getElementById("search-input"),
+  searchStatus: document.getElementById("search-status"),
   settingsBackdrop: document.getElementById("settings-backdrop"),
   settingsButton: document.getElementById("settings-button"),
   settingsCancel: document.getElementById("settings-cancel"),
@@ -705,6 +712,31 @@ function renderStats() {
   )}%`;
 }
 
+function renderSearchStatus() {
+  const info = state.searchInfo || {};
+
+  if (!info.active || !state.search) {
+    elements.searchStatus.classList.add("hidden");
+    elements.searchStatus.textContent = "";
+    return;
+  }
+
+  const resultCount = state.items.length;
+  const scopeLabel =
+    info.scope === "trash"
+      ? "inside Trash"
+      : info.scope === "vault"
+        ? "across your whole vault"
+        : "inside this folder";
+  const prefix = info.mode === "smart" ? "Smart search" : "Search";
+  const summary = info.summary ? ` ${info.summary}.` : "";
+
+  elements.searchStatus.textContent = `${prefix} found ${resultCount} result${
+    resultCount === 1 ? "" : "s"
+  } ${scopeLabel}.${summary}`;
+  elements.searchStatus.classList.remove("hidden");
+}
+
 function renderBreadcrumb() {
   elements.breadcrumb.innerHTML = state.currentFolder.breadcrumb
     .map((crumb, index) => {
@@ -857,6 +889,10 @@ function renderItems() {
         !state.showTrash && item.kind === "file" && item.share
           ? `<span class="item-share-pill">Shared ${escapeHtml(item.share.permission)}</span>`
           : "";
+      const locationLine =
+        state.searchInfo?.active && item.locationPath
+          ? `<p class="item-location">${escapeHtml(item.locationPath)}</p>`
+          : "";
       const previewAction =
         !state.showTrash && item.kind === "file" && getPreviewKind(item)
           ? `
@@ -922,20 +958,25 @@ function renderItems() {
             <article class="item-row">
               <div class="item-main">
                 <span class="item-icon" data-kind="${escapeHtml(item.kind)}">${iconLabel(item)}</span>
-                <button
-                  class="item-name-button"
-                  type="button"
-                  ${
-                    item.kind === "folder"
-                      ? `data-action="open-folder" data-id="${escapeHtml(item.id)}"`
-                      : getPreviewKind(item)
-                        ? `data-action="preview-file" data-id="${escapeHtml(item.id)}"`
-                        : ""
-                  }
-                >
-                  ${escapeHtml(item.name)}
-                </button>
-                ${shareBadge}
+                <div class="item-copy">
+                  <div class="item-copy-top">
+                    <button
+                      class="item-name-button"
+                      type="button"
+                      ${
+                        item.kind === "folder"
+                          ? `data-action="open-folder" data-id="${escapeHtml(item.id)}"`
+                          : getPreviewKind(item)
+                            ? `data-action="preview-file" data-id="${escapeHtml(item.id)}"`
+                            : ""
+                      }
+                    >
+                      ${escapeHtml(item.name)}
+                    </button>
+                    ${shareBadge}
+                  </div>
+                  ${locationLine}
+                </div>
               </div>
               <span>${escapeHtml(formatDate(item.updatedAt))}</span>
               <span>${escapeHtml(item.typeLabel || "")}</span>
@@ -947,20 +988,25 @@ function renderItems() {
             <article class="item-card">
               <div class="item-card-head">
                 <span class="item-icon" data-kind="${escapeHtml(item.kind)}">${iconLabel(item)}</span>
-                <button
-                  class="item-name-button"
-                  type="button"
-                  ${
-                    item.kind === "folder"
-                      ? `data-action="open-folder" data-id="${escapeHtml(item.id)}"`
-                      : getPreviewKind(item)
-                        ? `data-action="preview-file" data-id="${escapeHtml(item.id)}"`
-                        : ""
-                  }
-                >
-                  ${escapeHtml(item.name)}
-                </button>
-                ${shareBadge}
+                <div class="item-copy">
+                  <div class="item-copy-top">
+                    <button
+                      class="item-name-button"
+                      type="button"
+                      ${
+                        item.kind === "folder"
+                          ? `data-action="open-folder" data-id="${escapeHtml(item.id)}"`
+                          : getPreviewKind(item)
+                            ? `data-action="preview-file" data-id="${escapeHtml(item.id)}"`
+                            : ""
+                      }
+                    >
+                      ${escapeHtml(item.name)}
+                    </button>
+                    ${shareBadge}
+                  </div>
+                  ${locationLine}
+                </div>
               </div>
               <p class="item-meta">${escapeHtml(item.typeLabel || "")}</p>
               <p class="item-meta">${escapeHtml(formatDate(item.updatedAt))}</p>
@@ -977,6 +1023,7 @@ function renderExplorer() {
   renderBreadcrumb();
   renderFolderTree();
   renderSharedWithMe();
+  renderSearchStatus();
   renderItems();
   renderUploadQueue();
   if (state.user) {
@@ -1008,6 +1055,7 @@ async function refreshExplorer() {
   state.currentFolder = data.currentFolder;
   state.folderTree = data.folderTree || [];
   state.items = data.items || [];
+  state.searchInfo = data.searchInfo || state.searchInfo;
   state.sharedWithMe = data.sharedWithMe || [];
   state.stats = data.stats || state.stats;
   state.storage = data.storage || state.storage;
@@ -1022,6 +1070,7 @@ async function restoreSession() {
     if (!data.authenticated) {
       state.user = null;
       state.items = [];
+      state.searchInfo = { active: false, mode: "plain", scope: "folder", summary: "" };
       state.sharedWithMe = [];
       syncSupportEmail();
       window.ClosetVaultSupport?.close?.({ resetForm: true });
@@ -1195,6 +1244,7 @@ async function handleLogout() {
     state.currentFolder = { breadcrumb: [{ id: null, name: "Vault" }], id: null, name: "Vault", parentId: null };
     state.folderTree = [];
     state.items = [];
+    state.searchInfo = { active: false, mode: "plain", scope: "folder", summary: "" };
     state.sharedWithMe = [];
     state.showTrash = false;
     state.user = null;

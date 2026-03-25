@@ -70,6 +70,110 @@ const SHARE_GRANT_TTL_MS = 1000 * 60 * 20;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SUPPORT_MESSAGE_MIN_LENGTH = 10;
 const SUPPORT_MESSAGE_MAX_LENGTH = 2000;
+const SMART_SEARCH_STOP_WORDS = new Set([
+  "a",
+  "about",
+  "all",
+  "an",
+  "any",
+  "around",
+  "file",
+  "files",
+  "find",
+  "for",
+  "from",
+  "i",
+  "in",
+  "me",
+  "my",
+  "of",
+  "on",
+  "please",
+  "show",
+  "the",
+  "these",
+  "this",
+  "those",
+  "to",
+  "uploaded",
+  "uploads",
+  "with",
+]);
+const SMART_SEARCH_TYPE_RULES = [
+  {
+    category: "document",
+    extension: "pdf",
+    label: "PDF files",
+    match: /\bpdfs?\b/,
+    replace: /\bpdfs?\b/g,
+  },
+  {
+    category: "image",
+    extension: null,
+    label: "images",
+    match: /\b(?:photos?|pictures?|images?|pics?)\b/,
+    replace: /\b(?:photos?|pictures?|images?|pics?)\b/g,
+  },
+  {
+    category: "video",
+    extension: null,
+    label: "videos",
+    match: /\b(?:videos?|movies?|clips?)\b/,
+    replace: /\b(?:videos?|movies?|clips?)\b/g,
+  },
+  {
+    category: "audio",
+    extension: null,
+    label: "audio files",
+    match: /\b(?:audio|songs?|music|recordings?|mp3s?)\b/,
+    replace: /\b(?:audio|songs?|music|recordings?|mp3s?)\b/g,
+  },
+  {
+    category: "document",
+    extension: null,
+    label: "documents",
+    match: /\b(?:documents?|docs?|spreadsheets?|presentations?|text files?)\b/,
+    replace: /\b(?:documents?|docs?|spreadsheets?|presentations?|text files?)\b/g,
+  },
+];
+const SMART_SEARCH_DATE_RULES = [
+  {
+    id: "yesterday",
+    label: "uploaded yesterday",
+    match: /\byesterday\b/,
+    replace: /\byesterday\b/g,
+  },
+  {
+    id: "today",
+    label: "uploaded today",
+    match: /\btoday\b/,
+    replace: /\btoday\b/g,
+  },
+  {
+    id: "last-week",
+    label: "uploaded last week",
+    match: /\b(?:last|past)\s+week\b/,
+    replace: /\b(?:last|past)\s+week\b/g,
+  },
+  {
+    id: "this-week",
+    label: "uploaded this week",
+    match: /\bthis\s+week\b/,
+    replace: /\bthis\s+week\b/g,
+  },
+  {
+    id: "last-month",
+    label: "uploaded last month",
+    match: /\b(?:last|past)\s+month\b/,
+    replace: /\b(?:last|past)\s+month\b/g,
+  },
+  {
+    id: "this-month",
+    label: "uploaded this month",
+    match: /\bthis\s+month\b/,
+    replace: /\bthis\s+month\b/g,
+  },
+];
 const SHARE_SNAPSHOT_KEY = crypto
   .createHash("sha256")
   .update(process.env.CLOSETVAULT_SHARE_SECRET || "closetvault-share-snapshot")
@@ -312,6 +416,262 @@ function buildBreadcrumb(folderMap, folderId, includeTrash = false) {
   }
 
   return trail.concat(stack.reverse());
+}
+
+function buildFolderPathLabelMap(folders) {
+  const folderMap = new Map(folders.map((folder) => [folder.id, folder]));
+  const pathMap = new Map([[null, "Vault"]]);
+
+  function resolve(folderId) {
+    if (pathMap.has(folderId || null)) {
+      return pathMap.get(folderId || null);
+    }
+
+    const folder = folderMap.get(folderId);
+
+    if (!folder) {
+      return "Vault";
+    }
+
+    const fullPath = `${resolve(folder.parentId || null)} / ${folder.name}`;
+    pathMap.set(folder.id, fullPath);
+    return fullPath;
+  }
+
+  folders.forEach((folder) => resolve(folder.id));
+  return pathMap;
+}
+
+function normalizeSmartSearchText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9.\s-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tokenizeSmartSearchText(value) {
+  const normalized = normalizeSmartSearchText(value);
+  return normalized ? normalized.split(" ") : [];
+}
+
+function startOfLocalDay(value) {
+  const date = new Date(value);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function shiftLocalDays(value, dayCount) {
+  const date = new Date(value);
+  date.setDate(date.getDate() + dayCount);
+  return date;
+}
+
+function startOfLocalWeek(value) {
+  const date = startOfLocalDay(value);
+  const weekday = (date.getDay() + 6) % 7;
+  date.setDate(date.getDate() - weekday);
+  return date;
+}
+
+function startOfLocalMonth(value) {
+  const date = startOfLocalDay(value);
+  date.setDate(1);
+  return date;
+}
+
+function buildSmartSearchDateRange(ruleId, now = new Date()) {
+  const currentMoment = new Date(now);
+
+  switch (ruleId) {
+    case "yesterday":
+      return {
+        from: shiftLocalDays(startOfLocalDay(currentMoment), -1),
+        to: startOfLocalDay(currentMoment),
+      };
+    case "today":
+      return {
+        from: startOfLocalDay(currentMoment),
+        to: shiftLocalDays(startOfLocalDay(currentMoment), 1),
+      };
+    case "last-week":
+      return {
+        from: shiftLocalDays(startOfLocalDay(currentMoment), -7),
+        to: currentMoment,
+      };
+    case "this-week":
+      return {
+        from: startOfLocalWeek(currentMoment),
+        to: currentMoment,
+      };
+    case "last-month":
+      return {
+        from: (() => {
+          const date = startOfLocalDay(currentMoment);
+          date.setMonth(date.getMonth() - 1);
+          return date;
+        })(),
+        to: currentMoment,
+      };
+    case "this-month":
+      return {
+        from: startOfLocalMonth(currentMoment),
+        to: currentMoment,
+      };
+    default:
+      return null;
+  }
+}
+
+function parseSmartSearchQuery(rawQuery, now = new Date()) {
+  const raw = String(rawQuery || "").trim();
+  const rawTokens = tokenizeSmartSearchText(raw);
+  let workingQuery = normalizeSmartSearchText(raw);
+  let category = null;
+  let extension = null;
+  let typeLabel = "";
+  let dateFrom = null;
+  let dateTo = null;
+  let dateLabel = "";
+
+  for (const rule of SMART_SEARCH_TYPE_RULES) {
+    if (!rule.match.test(workingQuery)) {
+      continue;
+    }
+
+    category = rule.category;
+    extension = rule.extension;
+    typeLabel = rule.label;
+    workingQuery = workingQuery.replace(rule.replace, " ");
+    break;
+  }
+
+  for (const rule of SMART_SEARCH_DATE_RULES) {
+    if (!rule.match.test(workingQuery)) {
+      continue;
+    }
+
+    const dateRange = buildSmartSearchDateRange(rule.id, now);
+    dateFrom = dateRange?.from?.toISOString() || null;
+    dateTo = dateRange?.to?.toISOString() || null;
+    dateLabel = rule.label;
+    workingQuery = workingQuery.replace(rule.replace, " ");
+    break;
+  }
+
+  const wantsFiles = rawTokens.includes("file") || rawTokens.includes("files");
+  const wantsFolders = rawTokens.includes("folder") || rawTokens.includes("folders");
+  let keywords = tokenizeSmartSearchText(workingQuery).filter(
+    (token) => !SMART_SEARCH_STOP_WORDS.has(token),
+  );
+
+  if (!keywords.length && !category && !extension && !dateFrom && raw) {
+    keywords = rawTokens.filter((token) => !SMART_SEARCH_STOP_WORDS.has(token));
+  }
+
+  const hasStructuredFilters = Boolean(category || extension || dateFrom || dateTo);
+  const isNaturalLanguage =
+    hasStructuredFilters ||
+    rawTokens.some((token) => SMART_SEARCH_STOP_WORDS.has(token));
+  const summaryParts = [];
+
+  if (wantsFolders && !wantsFiles && !hasStructuredFilters) {
+    summaryParts.push("folders");
+  } else if ((wantsFiles && !wantsFolders && !typeLabel) || hasStructuredFilters) {
+    summaryParts.push(typeLabel || "files");
+  } else if (typeLabel) {
+    summaryParts.push(typeLabel);
+  }
+
+  if (keywords.length) {
+    summaryParts.push(`matching "${keywords.join(" ")}"`);
+  }
+
+  if (dateLabel) {
+    summaryParts.push(dateLabel);
+  }
+
+  return {
+    active: Boolean(raw),
+    category,
+    dateFrom,
+    dateTo,
+    extension,
+    fileOnly: hasStructuredFilters || (wantsFiles && !wantsFolders),
+    folderOnly: !hasStructuredFilters && wantsFolders && !wantsFiles,
+    hasStructuredFilters,
+    keywords,
+    mode: isNaturalLanguage ? "smart" : "plain",
+    raw,
+    summary:
+      summaryParts.join(" | ") ||
+      (raw ? `matching "${normalizeSmartSearchText(raw) || raw.toLowerCase()}"` : ""),
+  };
+}
+
+function buildSearchableItemText(item) {
+  return normalizeSmartSearchText(
+    [
+      item.name,
+      item.typeLabel,
+      item.category,
+      item.extension,
+      item.locationPath,
+      item.fullPath,
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
+}
+
+function itemMatchesSmartSearch(item, parsedSearch) {
+  if (!parsedSearch.active) {
+    return true;
+  }
+
+  if (parsedSearch.folderOnly && item.kind !== "folder") {
+    return false;
+  }
+
+  if (parsedSearch.fileOnly && item.kind !== "file") {
+    return false;
+  }
+
+  if (item.kind === "folder") {
+    if (parsedSearch.hasStructuredFilters) {
+      return false;
+    }
+
+    const searchText = buildSearchableItemText(item);
+    return parsedSearch.keywords.every((keyword) => searchText.includes(keyword));
+  }
+
+  if (parsedSearch.category && item.category !== parsedSearch.category) {
+    return false;
+  }
+
+  if (parsedSearch.extension && item.extension !== parsedSearch.extension) {
+    return false;
+  }
+
+  if (parsedSearch.dateFrom || parsedSearch.dateTo) {
+    const createdAt = Date.parse(item.createdAt);
+
+    if (!Number.isFinite(createdAt)) {
+      return false;
+    }
+
+    if (parsedSearch.dateFrom && createdAt < Date.parse(parsedSearch.dateFrom)) {
+      return false;
+    }
+
+    if (parsedSearch.dateTo && createdAt >= Date.parse(parsedSearch.dateTo)) {
+      return false;
+    }
+  }
+
+  const searchText = buildSearchableItemText(item);
+  return parsedSearch.keywords.every((keyword) => searchText.includes(keyword));
 }
 
 function getUploadMetadata(req, requestUrl, rawBody) {
@@ -861,7 +1221,8 @@ function handleLogout(req, res) {
 async function handleExplorer(req, res, requestUrl) {
   const session = requireSession(req);
   const showTrash = parseBooleanFlag(requestUrl.searchParams.get("trash"));
-  const search = String(requestUrl.searchParams.get("search") || "").trim().toLowerCase();
+  const search = String(requestUrl.searchParams.get("search") || "").trim();
+  const parsedSearch = parseSmartSearchQuery(search);
   const sortBy = ["date", "name", "size"].includes(requestUrl.searchParams.get("sortBy"))
     ? requestUrl.searchParams.get("sortBy")
     : "date";
@@ -869,6 +1230,7 @@ async function handleExplorer(req, res, requestUrl) {
   const requestedFolderId = normalizeFolderId(requestUrl.searchParams.get("folderId"));
   const folders = listActiveFolders(session.userId);
   const folderMap = new Map(folders.map((folder) => [folder.id, folder]));
+  const folderPathMap = buildFolderPathLabelMap(folders);
   const childCountMap = buildFolderChildCountMap(session.userId);
   const shareMap = new Map(
     listActiveSharesForOwner(session.userId).map((share) => [share.fileId, toPublicShare(share)]),
@@ -911,8 +1273,16 @@ async function handleExplorer(req, res, requestUrl) {
       `,
       session.userId,
     )
-      .map(toPublicFile)
-      .filter((item) => !search || item.name.toLowerCase().includes(search));
+      .map((file) => {
+        const item = toPublicFile(file);
+        const locationPath = folderPathMap.get(file.trashedParentId || null) || "Vault";
+        return {
+          ...item,
+          fullPath: `${locationPath} / ${item.name}`,
+          locationPath,
+        };
+      })
+      .filter((item) => itemMatchesSmartSearch(item, parsedSearch));
 
     currentFolder = {
       breadcrumb: buildBreadcrumb(folderMap, null, true),
@@ -921,9 +1291,18 @@ async function handleExplorer(req, res, requestUrl) {
       parentId: null,
     };
   } else {
-    const folderItems = folders
-      .filter((folder) => (folder.parentId || null) === requestedFolderId)
-      .map((folder) => toPublicFolder(folder, childCountMap));
+    const folderItems = (parsedSearch.active
+      ? folders
+      : folders.filter((folder) => (folder.parentId || null) === requestedFolderId)
+    ).map((folder) => {
+      const item = toPublicFolder(folder, childCountMap);
+      const locationPath = folderPathMap.get(folder.parentId || null) || "Vault";
+      return {
+        ...item,
+        fullPath: folderPathMap.get(folder.id) || `${locationPath} / ${folder.name}`,
+        locationPath,
+      };
+    });
     const fileItems = dbAll(
       `
         SELECT
@@ -945,18 +1324,25 @@ async function handleExplorer(req, res, requestUrl) {
         FROM files
         WHERE user_id = ?
           AND deleted_at IS NULL
-          AND folder_id IS ?
+          AND (? = 1 OR folder_id IS ?)
       `,
       session.userId,
+      parsedSearch.active ? 1 : 0,
       requestedFolderId,
-    ).map((file) => ({
-      ...toPublicFile(file),
-      share: shareMap.get(file.id) || null,
-    }));
+    ).map((file) => {
+      const item = {
+        ...toPublicFile(file),
+        share: shareMap.get(file.id) || null,
+      };
+      const locationPath = folderPathMap.get(file.folderId || null) || "Vault";
+      return {
+        ...item,
+        fullPath: `${locationPath} / ${item.name}`,
+        locationPath,
+      };
+    });
 
-    items = [...folderItems, ...fileItems].filter(
-      (item) => !search || item.name.toLowerCase().includes(search),
-    );
+    items = [...folderItems, ...fileItems].filter((item) => itemMatchesSmartSearch(item, parsedSearch));
   }
 
   sendJson(res, 200, {
@@ -964,6 +1350,12 @@ async function handleExplorer(req, res, requestUrl) {
     folderTree: folders.map((folder) => toPublicFolder(folder, childCountMap)),
     items: sortExplorerItems(items, sortBy, sortDirection),
     search,
+    searchInfo: {
+      active: parsedSearch.active,
+      mode: parsedSearch.mode,
+      scope: showTrash ? "trash" : parsedSearch.active ? "vault" : "folder",
+      summary: parsedSearch.summary,
+    },
     showTrash,
     sharedWithMe: listSharedInbox(session.userId).map(buildSharedInboxEntry),
     sortBy,

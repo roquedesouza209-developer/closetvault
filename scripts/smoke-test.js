@@ -55,6 +55,25 @@ function createClient(baseUrl) {
   };
 }
 
+async function uploadTestFile(client, folderId, { contents, contentType, name }) {
+  const pathname = folderId
+    ? `/api/files/upload?folderId=${encodeURIComponent(folderId)}`
+    : "/api/files/upload";
+  const response = await client.request(pathname, {
+    body: contents,
+    headers: {
+      "Content-Type": contentType,
+      "X-ClosetVault-Name": encodeURIComponent(name),
+      "X-ClosetVault-Size": String(contents.length),
+    },
+    method: "POST",
+  });
+  const payload = await response.json();
+
+  assert.equal(response.status, 201);
+  return payload.file;
+}
+
 async function main() {
   server = await startServer({ host: "127.0.0.1", port: 0 });
   const address = server.address();
@@ -151,22 +170,72 @@ async function main() {
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9VE3Gx8AAAAASUVORK5CYII=",
     "base64",
   );
-  const uploadResponse = await owner.request(
-    `/api/files/upload?folderId=${encodeURIComponent(folderId)}`,
-    {
-      body: fileContents,
-      headers: {
-        "Content-Type": "image/png",
-        "X-ClosetVault-Name": encodeURIComponent("thumbnail.png"),
-        "X-ClosetVault-Size": String(fileContents.length),
-      },
-      method: "POST",
-    },
-  );
-  const uploadPayload = await uploadResponse.json();
+  const pdfContents = Buffer.from("%PDF-1.4\n%ClosetVault\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF");
+  const videoContents = Buffer.from("ClosetVault smart search video test");
+  const sharedFile = await uploadTestFile(owner, folderId, {
+    contents: fileContents,
+    contentType: "image/png",
+    name: "thumbnail.png",
+  });
+  const photoSearchFile = await uploadTestFile(owner, null, {
+    contents: fileContents,
+    contentType: "image/png",
+    name: "orbit-photo.png",
+  });
+  const pdfSearchFile = await uploadTestFile(owner, null, {
+    contents: pdfContents,
+    contentType: "application/pdf",
+    name: "physics-reference.pdf",
+  });
+  const videoSearchFile = await uploadTestFile(owner, null, {
+    contents: videoContents,
+    contentType: "video/mp4",
+    name: "lab-video.mp4",
+  });
+  const fileId = sharedFile.id;
 
-  assert.equal(uploadResponse.status, 201);
-  const fileId = uploadPayload.file.id;
+  const searchMutationDatabase = new DatabaseSync(DATABASE_FILE);
+  const updateTimestamps = searchMutationDatabase.prepare(
+    `
+      UPDATE files
+      SET created_at = ?, updated_at = ?
+      WHERE id = ?
+    `,
+  );
+  const yesterday = new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString();
+  const sixDaysAgo = new Date(Date.now() - 1000 * 60 * 60 * 24 * 6).toISOString();
+
+  updateTimestamps.run(yesterday, yesterday, photoSearchFile.id);
+  updateTimestamps.run(sixDaysAgo, sixDaysAgo, videoSearchFile.id);
+  searchMutationDatabase.close();
+
+  const photosSearch = await owner.json(
+    `/api/explorer?search=${encodeURIComponent("Show me the photos I uploaded yesterday")}`,
+  );
+
+  assert.equal(photosSearch.response.status, 200);
+  assert.equal(photosSearch.payload.searchInfo.mode, "smart");
+  assert.equal(photosSearch.payload.searchInfo.scope, "vault");
+  assert.equal(photosSearch.payload.items.length, 1);
+  assert.equal(photosSearch.payload.items[0].name, "orbit-photo.png");
+
+  const pdfSearch = await owner.json(
+    `/api/explorer?search=${encodeURIComponent("Find the PDF about physics")}`,
+  );
+
+  assert.equal(pdfSearch.response.status, 200);
+  assert.equal(pdfSearch.payload.searchInfo.mode, "smart");
+  assert.equal(pdfSearch.payload.items.length, 1);
+  assert.equal(pdfSearch.payload.items[0].name, "physics-reference.pdf");
+
+  const videoSearch = await owner.json(
+    `/api/explorer?search=${encodeURIComponent("Videos from last week")}`,
+  );
+
+  assert.equal(videoSearch.response.status, 200);
+  assert.equal(videoSearch.payload.searchInfo.mode, "smart");
+  assert.equal(videoSearch.payload.items.length, 1);
+  assert.equal(videoSearch.payload.items[0].name, "lab-video.mp4");
 
   const previewResponse = await owner.request(`/api/files/${fileId}/preview`);
   const previewBuffer = Buffer.from(await previewResponse.arrayBuffer());

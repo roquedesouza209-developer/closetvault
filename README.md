@@ -19,7 +19,8 @@ ClosetVault is a zero-dependency Node.js storage MVP with a Windows-like file ex
 - "Shared with me" dashboard section for links opened while signed in
 - Create, rename, and delete folders
 - Grid view and list view
-- Search and sort by name, date, and size
+- Smart search across the vault using natural-language queries like "photos uploaded yesterday"
+- Sort by name, date, and size
 - Storage usage tracking
 - S3-compatible storage adapter architecture with local filesystem storage by default
 

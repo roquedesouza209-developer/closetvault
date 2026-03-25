@@ -594,6 +594,7 @@ html.show-reload-splash .reload-splash {
 .explorer-subtitle,
 .sidebar-note,
 .item-meta,
+.item-location,
 .dialog-description {
   color: var(--muted);
 }
@@ -993,6 +994,16 @@ body.dashboard-active #vault-panel {
   min-height: 8rem;
 }
 
+.search-status {
+  margin: 0;
+  padding: 0.8rem 0.95rem;
+  border-radius: 0.95rem;
+  border: 1px solid var(--accent-border-soft);
+  background: var(--accent-panel);
+  color: var(--label);
+  line-height: 1.45;
+}
+
 .dropzone {
   position: relative;
   display: grid;
@@ -1067,9 +1078,37 @@ body.dashboard-active #vault-panel {
 .item-card-head,
 .item-actions {
   display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.item-main,
+.item-card-head {
+  align-items: flex-start;
+}
+
+.item-actions {
+  align-items: center;
+}
+
+.item-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.item-copy-top {
+  display: flex;
   align-items: center;
   gap: 0.65rem;
   flex-wrap: wrap;
+  min-width: 0;
+}
+
+.item-location {
+  margin: 0;
+  font-size: 0.8rem;
 }
 
 .item-name-button {
@@ -1078,6 +1117,7 @@ body.dashboard-active #vault-panel {
   border: 0;
   color: var(--text);
   cursor: pointer;
+  min-width: 0;
 }
 
 .item-icon {
