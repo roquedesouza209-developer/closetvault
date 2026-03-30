@@ -1,75 +1,60 @@
+# 🔒 2. CLOSETVAULT
+
+```md
 # ClosetVault
 
 Your Closet. Secure Vault.
 
-ClosetVault is a zero-dependency Node.js storage MVP with a Windows-like file explorer, encrypted object storage, and SQLite-backed file metadata.
+A secure file storage system designed to simplify how users store, manage, and share files.
 
-## Current Features
 
-- Account creation and sign-in
-- Password hashing with `scrypt`
-- Encrypted file storage at rest with `AES-256-GCM`
-- Upload documents, images, videos, and audio files
-- Drag-and-drop uploads with multiple-file support and progress UI
-- Download, rename, move, delete, and restore files from Trash
-- Preview images, MP4 videos, MP3 audio, and PDF documents inside the dashboard
-- Generate secure share links for files
-- Copy, replace, and revoke share links
-- View or edit shared files by link with optional expiration and password protection
-- "Shared with me" dashboard section for links opened while signed in
-- Create, rename, and delete folders
-- Grid view and list view
-- Smart search across the vault using natural-language queries like "photos uploaded yesterday"
-- Sort by name, date, and size
-- Storage usage tracking
-- S3-compatible storage adapter architecture with local filesystem storage by default
+## 🚀 Overview
 
-## Architecture
+ClosetVault is a storage platform built to replace disorganized file systems with a structured, secure, and user-friendly experience.
 
-- `server.js`: application entrypoint
-- `backend/config.js`: runtime configuration and limits
-- `backend/storage.js`: filesystem and S3-compatible object storage adapters
-- `backend/database.js`: SQLite metadata layer and migration helpers
-- `backend/app.js`: HTTP routes, auth, explorer handlers, and static serving
-- `public/index.html`: ClosetVault landing page and explorer shell
-- `public/styles.css`: marketing and explorer UI styling
-- `public/app.js`: browser-side explorer logic
-- `public/share.html`: public shared-link page
-- `public/share.js`: shared-link preview, download, and rename logic
-- `scripts/smoke-test.js`: end-to-end explorer verification
+It focuses on combining usability with strong backend system design.
 
-## Running Locally
+
+## ✨ Core Features
+
+- Secure authentication with password hashing  
+- Encrypted file storage (AES-256-GCM)  
+- Upload, download, move, and manage files  
+- Folder organization system  
+- File previews (images, video, audio, PDF)  
+- Smart search across stored files  
+- Shareable links with access control  
+- Storage usage tracking  
+
+
+## 🧠 System Design
+
+- SQLite-based metadata management  
+- Encrypted storage layer  
+- Modular architecture (local + S3-ready)  
+- Separation of storage, database, and UI  
+
+
+## 🛠 Tech Stack
+
+- Node.js  
+- SQLite  
+- JavaScript, HTML, CSS  
+
+
+## ⚙️ Run Locally
 
 ```bash
 npm start
-```
 
-ClosetVault starts on `http://127.0.0.1:3000` by default.
+Open: http://127.0.0.1:3000
 
-## Testing
+🌍 Why This Project
 
-```bash
-npm test
-```
+Built to simplify how people manage files and replace inefficient, scattered storage systems with a clean digital workflow.
 
-## Environment Options
-
-- `PORT`: server port, defaults to `3000`
-- `HOST`: bind host, defaults to `127.0.0.1`
-- `CLOSETVAULT_DATA_DIR`: override the app data directory
-- `CLOSETVAULT_MAX_UPLOAD_MB`: per-file upload cap, defaults to `50`
-- `CLOSETVAULT_STORAGE_CAP_MB`: total storage cap per vault, defaults to `5120`
-- `CLOSETVAULT_STORAGE_DRIVER`: `fs` or `s3`, defaults to `fs`
-- `CLOSETVAULT_S3_ENDPOINT`: S3-compatible endpoint when `CLOSETVAULT_STORAGE_DRIVER=s3`
-- `CLOSETVAULT_S3_BUCKET`: object storage bucket name
-- `CLOSETVAULT_S3_ACCESS_KEY`: object storage access key
-- `CLOSETVAULT_S3_SECRET_KEY`: object storage secret key
-- `CLOSETVAULT_S3_REGION`: storage region, defaults to `us-east-1`
-- `CLOSETVAULT_S3_FORCE_PATH_STYLE`: defaults to `true`
-
-## Notes
-
-- SQLite powers the explorer metadata. In Node.js 24 this uses the built-in experimental `node:sqlite` module, so you will see Node's experimental warning during startup and tests.
-- Folder deletion currently requires the folder to be empty.
-- Shared links use encrypted share snapshots so previews and downloads still work without the owner's live session key.
-- The "Shared with me" list is populated when another signed-in ClosetVault user opens a shared link.
+🚧 Future Improvements
+Cloud deployment
+Multi-user collaboration
+Advanced permission control
+Cross-device sync
